@@ -1,26 +1,75 @@
 {
-  "id": "scales-chords",
-  "name": "Scales & Chords",
-  "description": "Render guitar chord and scale diagrams in your notes",
-  "version": "1.0.0",
-  "author": "Eric Gradman (converted for NotePlan)",
-  "authorURL": "https://github.com/egradman",
-  "minAppVersion": "3.0.0",
-  "isPlugin": true,
-  "main": "script.js",
-  "script": null,
-  "repository": "https://github.com/egradman/scales-chords",
-  "commands": [
+  "noteplan.minAppVersion": "3.0.21",
+  "macOS.minVersion": "10.15.7",
+  "iOS.minVersion": "14",
+  "plugin.id": "scalesandchords",
+  "plugin.name": "Scales and Chords",
+  "plugin.description": "Render guitar chord and scale diagrams in your notes",
+  "plugin.author": "Eric Gradman",
+  "plugin.version": "1.0.0",
+  "plugin.dependencies": [],
+  "plugin.script": "script.js",
+  "plugin.url": "https://github.com/egradman/scales-chords",
+  "plugin.commands": [
     {
-      "name": "Insert Chord Diagram",
+      "name": "insertChord",
       "description": "Insert a chord diagram template",
       "jsFunction": "insertChordDiagram"
     },
     {
-      "name": "Insert Scale Diagram",
+      "name": "insertNamedChord",
+      "description": "Insert a named chord (e.g., G, Am7)",
+      "jsFunction": "insertNamedChord"
+    },
+    {
+      "name": "insertScale",
       "description": "Insert a scale diagram template",
       "jsFunction": "insertScaleDiagram"
     }
   ],
-  "dependencies": []
+  "plugin.settings": [
+    {
+      "type": "heading",
+      "title": "Diagram Settings"
+    },
+    {
+      "key": "stringCount",
+      "title": "Number of Strings",
+      "description": "Number of strings to display (default: 6)",
+      "type": "number",
+      "default": 6
+    },
+    {
+      "key": "fretCount",
+      "title": "Number of Frets",
+      "description": "Number of frets to display (default: 5)",
+      "type": "number",
+      "default": 5
+    },
+    {
+      "key": "lefty",
+      "title": "Left-handed",
+      "description": "Flip diagram for left-handed players",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "type": "heading",
+      "title": "Appearance"
+    },
+    {
+      "key": "dotColor",
+      "title": "Dot Color",
+      "description": "Color of the dots on the diagram (hex color)",
+      "type": "string",
+      "default": "#4287f5"
+    },
+    {
+      "key": "chordNameColor",
+      "title": "Chord Name Color",
+      "description": "Color of the chord names (hex color)",
+      "type": "string",
+      "default": "#ff0000"
+    }
+  ]
 }
