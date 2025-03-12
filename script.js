@@ -1,9 +1,7 @@
-// scales-chords plugin - NotePlan plugin for rendering guitar chord and scale diagrams
-// Converted from the Obsidian plugin: https://github.com/egradman/scales-chords
+// Scales and Chords plugin for NotePlan
+// Renders guitar chord and scale diagrams in your notes
 
-const pluginID = "scales-chords";
-
-// Default settings that mirror the original Obsidian plugin
+// Default settings
 const DEFAULT_SETTINGS = {
   stringCount: 6,
   fretCount: 5,
@@ -17,7 +15,184 @@ const DEFAULT_SETTINGS = {
   strokeWidth: 2,
   backgroundColor: "#ffffff",
   foregroundColor: "#000000",
-  dotColor: "#4287f5"
+  dotColor: "#4287f5",
+  chordNameColor: "#ff0000"
+};
+
+// Common chord definitions
+const CHORD_LIBRARY = {
+  // Major chords
+  "G": [
+    "3 0",
+    "2 0",
+    "1 0",
+    "6 3 3",
+    "5 2 2",
+    "4 0"
+  ],
+  "C": [
+    "5 3 3",
+    "4 2 2",
+    "3 0",
+    "2 1 1",
+    "1 0"
+  ],
+  "D": [
+    "4 0",
+    "3 2 3",
+    "2 3 2", 
+    "1 2 1"
+  ],
+  "A": [
+    "5 0",
+    "4 2 2",
+    "3 2 3",
+    "2 2 4",
+    "1 0"
+  ],
+  "E": [
+    "6 0",
+    "5 2 2",
+    "4 2 3",
+    "3 1 1",
+    "2 0",
+    "1 0"
+  ],
+  "F": [
+    "6 1 1",
+    "5 3 3", 
+    "4 3 4",
+    "3 2 2",
+    "2 1 1",
+    "1 1 1"
+  ],
+  "B": [
+    "5 2 1",
+    "4 4 3",
+    "3 4 4",
+    "2 4 4",
+    "1 2 2"
+  ],
+  
+  // Minor chords
+  "Em": [
+    "6 0",
+    "5 2 2",
+    "4 2 3",
+    "3 0",
+    "2 0",
+    "1 0"
+  ],
+  "Am": [
+    "5 0",
+    "4 2 2",
+    "3 2 3",
+    "2 1 1",
+    "1 0"
+  ],
+  "Dm": [
+    "4 0",
+    "3 2 3",
+    "2 3 2",
+    "1 1 1"
+  ],
+  "Bm": [
+    "5 2 1",
+    "4 4 3",
+    "3 4 4",
+    "2 3 2",
+    "1 2 2"
+  ],
+  
+  // 7th chords
+  "G7": [
+    "6 3 3",
+    "5 2 2",
+    "4 0",
+    "3 0",
+    "2 0",
+    "1 1 1"
+  ],
+  "C7": [
+    "5 3 3",
+    "4 2 2",
+    "3 3 4",
+    "2 1 1",
+    "1 0"
+  ],
+  "D7": [
+    "4 0",
+    "3 2 3",
+    "2 1 1",
+    "1 2 2"
+  ],
+  "A7": [
+    "5 0",
+    "4 2 2",
+    "3 0",
+    "2 2 3",
+    "1 0"
+  ],
+  "E7": [
+    "6 0",
+    "5 2 2",
+    "4 0",
+    "3 1 1",
+    "2 0",
+    "1 0"
+  ],
+  
+  // Minor 7th chords
+  "Am7": [
+    "5 0",
+    "4 2 2",
+    "3 0",
+    "2 1 1",
+    "1 0"
+  ],
+  "Em7": [
+    "6 0",
+    "5 2 2",
+    "4 0",
+    "3 0",
+    "2 0", 
+    "1 0"
+  ],
+  "Dm7": [
+    "4 0",
+    "3 2 3",
+    "2 1 1",
+    "1 1 2"
+  ],
+  
+  // Other common chords
+  "G/B": [
+    "5 2 2",
+    "4 0",
+    "3 0",
+    "2 0",
+    "1 3 4"
+  ],
+  "Cadd9": [
+    "5 3 3",
+    "4 2 2",
+    "3 0",
+    "2 3 4",
+    "1 0"
+  ],
+  "Dsus2": [
+    "4 0",
+    "3 2 3",
+    "2 3 4",
+    "1 0"
+  ],
+  "Asus2": [
+    "5 0",
+    "4 0", 
+    "3 2 2",
+    "2 2 3",
+    "1 0"
+  ]
 };
 
 // Guitar class to handle chord and scale rendering
@@ -31,12 +206,14 @@ class Guitar {
   }
 
   // Creates an SVG element
-  createSVG() {
+  createSVG(chordName = null) {
     const ns = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(ns, "svg");
     
     const width = this.stringCount * this.stringSpacing;
-    const height = (this.fretCount + 1) * this.fretWidth;
+    // Add extra space at the top for the chord name if needed
+    const nameHeight = chordName ? 20 : 0;
+    const height = (this.fretCount + 1) * this.fretWidth + nameHeight;
     
     svg.setAttribute("width", width);
     svg.setAttribute("height", height);
@@ -46,20 +223,34 @@ class Guitar {
     // Set background color
     svg.style.backgroundColor = this.settings.backgroundColor;
     
+    // Add chord name if provided
+    if (chordName) {
+      const text = document.createElementNS(ns, "text");
+      text.setAttribute("x", width / 2);
+      text.setAttribute("y", 15); // Position at top
+      text.setAttribute("font-family", this.settings.fontFamily);
+      text.setAttribute("font-size", "16");
+      text.setAttribute("text-anchor", "middle");
+      text.setAttribute("fill", this.settings.chordNameColor);
+      text.setAttribute("font-weight", "bold");
+      text.textContent = chordName;
+      svg.appendChild(text);
+    }
+    
     return svg;
   }
 
   // Draw the guitar neck grid
-  drawGrid(svg) {
+  drawGrid(svg, startingY = 0) {
     const ns = "http://www.w3.org/2000/svg";
     
     // Draw horizontal lines (frets)
     for (let i = 0; i <= this.fretCount; i++) {
       const line = document.createElementNS(ns, "line");
       line.setAttribute("x1", "0");
-      line.setAttribute("y1", i * this.fretWidth);
+      line.setAttribute("y1", startingY + (i * this.fretWidth));
       line.setAttribute("x2", (this.stringCount - 1) * this.stringSpacing);
-      line.setAttribute("y2", i * this.fretWidth);
+      line.setAttribute("y2", startingY + (i * this.fretWidth));
       line.setAttribute("stroke", this.settings.foregroundColor);
       line.setAttribute("stroke-width", this.settings.strokeWidth);
       svg.appendChild(line);
@@ -70,9 +261,9 @@ class Guitar {
       const line = document.createElementNS(ns, "line");
       const x = i * this.stringSpacing;
       line.setAttribute("x1", x);
-      line.setAttribute("y1", "0");
+      line.setAttribute("y1", startingY);
       line.setAttribute("x2", x);
-      line.setAttribute("y2", this.fretCount * this.fretWidth);
+      line.setAttribute("y2", startingY + (this.fretCount * this.fretWidth));
       line.setAttribute("stroke", this.settings.foregroundColor);
       line.setAttribute("stroke-width", this.settings.strokeWidth);
       svg.appendChild(line);
@@ -82,7 +273,7 @@ class Guitar {
   }
 
   // Add a dot at a specific position
-  addDot(svg, string, fret, finger = null) {
+  addDot(svg, string, fret, finger = null, startingY = 0) {
     const ns = "http://www.w3.org/2000/svg";
     
     // Apply lefty conversion if needed
@@ -91,7 +282,7 @@ class Guitar {
     }
     
     const x = string * this.stringSpacing;
-    const y = (fret - 0.5) * this.fretWidth;
+    const y = startingY + ((fret - 0.5) * this.fretWidth);
     
     // Create the dot
     if (this.settings.showDots) {
@@ -120,9 +311,78 @@ class Guitar {
     return svg;
   }
 
+  // Add open/muted string indicators
+  addStringState(svg, string, state, startingY = 0) {
+    const ns = "http://www.w3.org/2000/svg";
+    
+    // Apply lefty conversion if needed
+    if (this.settings.lefty) {
+      string = this.stringCount - 1 - string;
+    }
+    
+    const x = string * this.stringSpacing;
+    const y = startingY - 10; // Above the grid
+    
+    if (state === "open") {
+      // Draw an O for open strings
+      const circle = document.createElementNS(ns, "circle");
+      circle.setAttribute("cx", x);
+      circle.setAttribute("cy", y);
+      circle.setAttribute("r", 5);
+      circle.setAttribute("stroke", this.settings.foregroundColor);
+      circle.setAttribute("stroke-width", 1);
+      circle.setAttribute("fill", "none");
+      svg.appendChild(circle);
+    } else if (state === "muted") {
+      // Draw an X for muted strings
+      const text = document.createElementNS(ns, "text");
+      text.setAttribute("x", x);
+      text.setAttribute("y", y);
+      text.setAttribute("font-family", this.settings.fontFamily);
+      text.setAttribute("font-size", 12);
+      text.setAttribute("text-anchor", "middle");
+      text.setAttribute("dominant-baseline", "middle");
+      text.setAttribute("fill", this.settings.foregroundColor);
+      text.textContent = "X";
+      svg.appendChild(text);
+    }
+    
+    return svg;
+  }
+
+  // Add fret numbers at the side
+  addFretNumbers(svg, startFret = 1, startingY = 0) {
+    const ns = "http://www.w3.org/2000/svg";
+    
+    // Only show numbers if starting above the 1st fret
+    if (startFret > 1) {
+      const text = document.createElementNS(ns, "text");
+      text.setAttribute("x", -15); // Position to the left of the grid
+      text.setAttribute("y", startingY + 15); // Position at the first fret
+      text.setAttribute("font-family", this.settings.fontFamily);
+      text.setAttribute("font-size", 12);
+      text.setAttribute("text-anchor", "middle");
+      text.setAttribute("fill", this.settings.foregroundColor);
+      text.textContent = startFret;
+      svg.appendChild(text);
+    }
+    
+    return svg;
+  }
+
   // Parse a chord definition and render it
-  renderChord(chordDef) {
-    const svg = this.drawGrid(this.createSVG());
+  renderChord(chordDef, chordName = null) {
+    // Check if we have a named chord
+    if (typeof chordDef === 'string' && CHORD_LIBRARY[chordDef]) {
+      chordName = chordDef;
+      chordDef = CHORD_LIBRARY[chordDef].join('\n');
+    }
+    
+    // Extra height for chord name
+    const nameHeight = chordName ? 20 : 0;
+    
+    const svg = this.createSVG(chordName);
+    this.drawGrid(svg, nameHeight);
     
     const lines = chordDef.trim().split('\n');
     
@@ -138,8 +398,15 @@ class Guitar {
         const fret = parseInt(parts[1]);
         const finger = parts.length > 2 ? parts[2] : null;
         
-        if (fret > 0) {
-          this.addDot(svg, string, fret, finger);
+        if (fret === 0) {
+          // Open string
+          this.addStringState(svg, string, "open", nameHeight);
+        } else if (fret === -1) {
+          // Muted string
+          this.addStringState(svg, string, "muted", nameHeight);
+        } else if (fret > 0) {
+          // Normal fretted note
+          this.addDot(svg, string, fret, finger, nameHeight);
         }
       }
     }
@@ -148,8 +415,12 @@ class Guitar {
   }
 
   // Parse a scale definition and render it
-  renderScale(scaleDef) {
-    const svg = this.drawGrid(this.createSVG());
+  renderScale(scaleDef, scaleName = null) {
+    // Extra height for scale name
+    const nameHeight = scaleName ? 20 : 0;
+    
+    const svg = this.createSVG(scaleName);
+    this.drawGrid(svg, nameHeight);
     
     const lines = scaleDef.trim().split('\n');
     
@@ -157,7 +428,6 @@ class Guitar {
       if (line.trim() === '') continue;
       
       // Format similar to chord but for scales
-      // Often has additional label for the note
       const parts = line.trim().split(' ');
       
       if (parts.length >= 2) {
@@ -165,8 +435,12 @@ class Guitar {
         const fret = parseInt(parts[1]);
         const finger = parts.length > 2 ? parts[2] : null;
         
-        if (fret >= 0) {
-          this.addDot(svg, string, fret, finger);
+        if (fret === 0) {
+          // Open string note
+          this.addStringState(svg, string, "open", nameHeight);
+        } else if (fret > 0) {
+          // Fretted note
+          this.addDot(svg, string, fret, finger, nameHeight);
         }
       }
     }
@@ -178,56 +452,91 @@ class Guitar {
 // Create a guitar instance with default settings
 let scalesChordGuitar = null;
 
-var plugin = {
-  // Plugin metadata
-  name: "Scales & Chords",
-  description: "Render guitar chord and scale diagrams in your notes",
-  author: "Eric Gradman (converted for NotePlan)",
-  version: "1.0.0",
+// Get plugin settings - merges default and user settings
+function getSettings() {
+  // Get user settings if available
+  let settings = {};
+  try {
+    // Try to get user settings
+    const userStringCount = DataStore.settings.stringCount;
+    const userFretCount = DataStore.settings.fretCount;
+    const userLefty = DataStore.settings.lefty;
+    const userDotColor = DataStore.settings.dotColor;
+    
+    // Apply user settings if they exist
+    settings = {
+      ...DEFAULT_SETTINGS,
+      stringCount: userStringCount || DEFAULT_SETTINGS.stringCount,
+      fretCount: userFretCount || DEFAULT_SETTINGS.fretCount,
+      lefty: userLefty !== undefined ? userLefty : DEFAULT_SETTINGS.lefty,
+      dotColor: userDotColor || DEFAULT_SETTINGS.dotColor
+    };
+  } catch (error) {
+    console.error("Error loading settings, using defaults:", error);
+    settings = DEFAULT_SETTINGS;
+  }
   
-  // Plugin initialization
-  async init() {
-    try {
-      console.log(`Initializing ${this.name} plugin`);
-      // Initialize the guitar renderer with default settings
-      scalesChordGuitar = new Guitar(DEFAULT_SETTINGS);
-      return true; // Success
-    } catch (error) {
-      console.error(`Error initializing ${this.name} plugin:`, error);
-      return false; // Failure
+  return settings;
+}
+
+// Initialize the plugin
+function init() {
+  try {
+    console.log("Initializing Scales and Chords plugin");
+    const settings = getSettings();
+    scalesChordGuitar = new Guitar(settings);
+    return true;
+  } catch (error) {
+    console.error("Error initializing Scales and Chords plugin:", error);
+    return false;
+  }
+}
+
+// Process markdown to find chord names and chord/scale blocks
+function onProcessMarkdown(markdown, noteUUID) {
+  // Find code blocks with chord or scale language
+  const chordRegex = /```chord\n([\s\S]*?)```/g;
+  const scaleRegex = /```scale\n([\s\S]*?)```/g;
+  
+  // Find inline chord references like "G", "Am7", etc. 
+  // They must be on their own line to be converted to diagrams
+  const chordNameRegex = /^([A-G][b#]?(?:m|maj|min|aug|dim|sus|add)?(?:\d+)?(?:\/[A-G][b#]?)?)$/gm;
+  
+  // Mark chord blocks with a unique identifier
+  let result = markdown.replace(chordRegex, (match, content) => {
+    const id = `chord-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `<div class="chord-placeholder" data-id="${id}" data-content="${encodeURIComponent(content)}"></div>`;
+  });
+  
+  // Mark scale blocks with a unique identifier
+  result = result.replace(scaleRegex, (match, content) => {
+    const id = `scale-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `<div class="scale-placeholder" data-id="${id}" data-content="${encodeURIComponent(content)}"></div>`;
+  });
+  
+  // Mark chord names with a unique identifier
+  result = result.replace(chordNameRegex, (match, chordName) => {
+    if (CHORD_LIBRARY[chordName]) {
+      const id = `chord-name-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      return `<div class="chord-name-placeholder" data-id="${id}" data-chord="${encodeURIComponent(chordName)}">${chordName}</div>`;
     }
-  },
+    return match; // If chord not found in library, leave it unchanged
+  });
   
-  // Plugin markdown processing
-  onProcessMarkdown(markdown, noteUUID) {
-    // Find all code blocks with chord or scale language
-    const chordRegex = /```chord\n([\s\S]*?)```/g;
-    const scaleRegex = /```scale\n([\s\S]*?)```/g;
-    
-    // Mark chord blocks with a unique identifier
-    let result = markdown.replace(chordRegex, (match, content) => {
-      const id = `chord-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      return `<div class="chord-placeholder" data-id="${id}" data-content="${encodeURIComponent(content)}"></div>`;
-    });
-    
-    // Mark scale blocks with a unique identifier
-    result = result.replace(scaleRegex, (match, content) => {
-      const id = `scale-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      return `<div class="scale-placeholder" data-id="${id}" data-content="${encodeURIComponent(content)}"></div>`;
-    });
-    
-    return result;
-  },
-  
-  // Plugin HTML rendering
-  onRenderMarkdown(html, noteUUID) {
+  return result;
+}
+
+// Process HTML to render the chord/scale diagrams
+function onRenderMarkdown(html, noteUUID) {
+  try {
     // Create temporary DOM to manipulate the HTML
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
     
     // Ensure guitar instance is created
     if (!scalesChordGuitar) {
-      scalesChordGuitar = new Guitar(DEFAULT_SETTINGS);
+      const settings = getSettings();
+      scalesChordGuitar = new Guitar(settings);
     }
     
     // Process chord placeholders
@@ -250,44 +559,85 @@ var plugin = {
       placeholder.parentNode.replaceChild(svg, placeholder);
     });
     
+    // Process chord name placeholders
+    const chordNamePlaceholders = tempDiv.querySelectorAll('.chord-name-placeholder');
+    chordNamePlaceholders.forEach(placeholder => {
+      const chordName = decodeURIComponent(placeholder.getAttribute('data-chord'));
+      const svg = scalesChordGuitar.renderChord(chordName, chordName);
+      
+      // Replace the placeholder with the SVG but keep the chord name text
+      const wrapper = document.createElement('div');
+      wrapper.classList.add('chord-with-name');
+      wrapper.style.display = 'inline-block';
+      wrapper.style.textAlign = 'center';
+      wrapper.style.marginRight = '10px';
+      
+      const nameDiv = document.createElement('div');
+      nameDiv.style.color = scalesChordGuitar.settings.chordNameColor;
+      nameDiv.style.fontWeight = 'bold';
+      nameDiv.textContent = chordName;
+      
+      wrapper.appendChild(svg);
+      wrapper.appendChild(nameDiv);
+      
+      placeholder.parentNode.replaceChild(wrapper, placeholder);
+    });
+    
     return tempDiv.innerHTML;
-  },
-  
-  // Command to insert a chord diagram template
-  insertChordDiagram() {
-    // Get the current editor
-    try {
-      const editor = NotePlan.editors.activeNoteEditor;
-      if (editor) {
-        // Insert a chord diagram template
-        const template = "```chord\n1 0\n2 1 1\n3 2 2\n4 2 3\n5 0\n6 0\n```";
-        editor.insertTextAtCursor(template);
-      }
-    } catch (error) {
-      console.error("Error inserting chord diagram:", error);
-    }
-  },
-  
-  // Command to insert a scale diagram template
-  insertScaleDiagram() {
-    try {
-      // Get the current editor
-      const editor = NotePlan.editors.activeNoteEditor;
-      if (editor) {
-        // Insert a scale diagram template
-        const template = "```scale\n1 0\n1 2\n1 3\n1 5\n2 0\n2 2\n2 3\n2 5\n```";
-        editor.insertTextAtCursor(template);
-      }
-    } catch (error) {
-      console.error("Error inserting scale diagram:", error);
-    }
-  },
-  
-  // Clean up resources when plugin is deactivated
-  deactivate() {
-    console.log(`Deactivating ${this.name} plugin`);
-    scalesChordGuitar = null;
+  } catch (error) {
+    console.error("Error rendering diagrams:", error);
+    return html; // Return original HTML if there's an error
   }
-};
+}
 
-module.exports = plugin;
+// Command to insert a chord diagram template
+function insertChordDiagram() {
+  try {
+    console.log("Insert chord diagram called");
+    const editor = Editor;
+    if (editor) {
+      const template = "```chord\n1 0\n2 1 1\n3 2 2\n4 2 3\n5 0\n6 0\n```";
+      editor.insertTextAtCursor(template);
+    }
+  } catch (error) {
+    console.error("Error inserting chord diagram:", error);
+  }
+}
+
+// Command to insert a specific named chord
+function insertNamedChord() {
+  try {
+    console.log("Insert named chord called");
+    const editor = Editor;
+    if (editor) {
+      // Show chord selection dialog
+      CommandBar.showOptions(Object.keys(CHORD_LIBRARY), "Select a chord").then(result => {
+        if (result && result.value) {
+          editor.insertTextAtCursor(result.value);
+        }
+      });
+    }
+  } catch (error) {
+    console.error("Error inserting named chord:", error);
+  }
+}
+
+// Command to insert a scale diagram template
+function insertScaleDiagram() {
+  try {
+    console.log("Insert scale diagram called");
+    const editor = Editor;
+    if (editor) {
+      const template = "```scale\n1 0\n1 2\n1 3\n1 5\n2 0\n2 2\n2 3\n2 5\n```";
+      editor.insertTextAtCursor(template);
+    }
+  } catch (error) {
+    console.error("Error inserting scale diagram:", error);
+  }
+}
+
+// Clean up resources when plugin is deactivated
+function deactivate() {
+  console.log("Deactivating Scales and Chords plugin");
+  scalesChordGuitar = null;
+}
