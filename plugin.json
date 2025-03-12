@@ -1,0 +1,26 @@
+{
+  "id": "scales-chords",
+  "name": "Scales & Chords",
+  "description": "Render guitar chord and scale diagrams in your notes",
+  "version": "1.0.0",
+  "author": "Eric Gradman (converted for NotePlan)",
+  "authorURL": "https://github.com/egradman",
+  "minAppVersion": "3.0.0",
+  "isPlugin": true,
+  "main": "script.js",
+  "script": null,
+  "repository": "https://github.com/egradman/scales-chords",
+  "commands": [
+    {
+      "name": "Insert Chord Diagram",
+      "description": "Insert a chord diagram template",
+      "jsFunction": "insertChordDiagram"
+    },
+    {
+      "name": "Insert Scale Diagram",
+      "description": "Insert a scale diagram template",
+      "jsFunction": "insertScaleDiagram"
+    }
+  ],
+  "dependencies": []
+}
